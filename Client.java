@@ -1,60 +1,103 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 
 public class Client {
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "10.0.75.21";
     private static final int SERVER_PORT = 12345;
+    private static JTextArea chatArea;
+    private static JTextField messageField;
+    private static PrintWriter out;
+    private static String username;
 
     public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                createAndShowGUI();
+            }
+        });
+        startClient();
+    }
+
+    private static void createAndShowGUI() {
+        // Creazione della finestra principale
+        JFrame frame = new JFrame("Client Chat");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 400);
+
+        // Layout della finestra
+        frame.setLayout(new BorderLayout());
+
+        // Area per i messaggi
+        chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(chatArea);
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        // Campo per inviare i messaggi
+        messageField = new JTextField();
+        frame.add(messageField, BorderLayout.SOUTH);
+
+        // Aggiungi un listener per il tasto Enter
+        messageField.addActionListener(e -> sendMessage());
+
+        // Mostra la finestra
+        frame.setVisible(true);
+    }
+
+    private static void startClient() {
         try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT)) {
             System.out.println("Connesso al server.");
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             Scanner scanner = new Scanner(System.in);
 
             // Ricezione e invio del nome utente
             System.out.print(in.readLine()); // Server chiede il nome utente
-            String username = scanner.nextLine();
+            username = scanner.nextLine();
             out.println(username);
 
             // Thread per ricevere i messaggi
-            new Thread(new ReceiveHandler(socket, username)).start();
+            new Thread(new ReceiveHandler(socket)).start();
 
-            // Loop per inviare i messaggi
-            while (true) {
-                System.out.print("Inserisci messaggio: ");
-                String message = scanner.nextLine();
-                out.println(message);
-                System.out.println("tu: " + message);
-            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-}
 
-class ReceiveHandler implements Runnable {
-    private Socket socket;
-    private String username;
-
-    public ReceiveHandler(Socket socket, String username) {
-        this.socket = socket;
-        this.username = username;
+    private static void sendMessage() {
+        String message = messageField.getText();
+        if (!message.trim().isEmpty()) {
+            out.println(message);
+            chatArea.append("Tu: " + message + "\n");
+            messageField.setText("");
+        }
     }
 
-    @Override
-    public void run() {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            String message;
-            while ((message = in.readLine()) != null) {
-                // Non stampare "tu:" per i messaggi inviati dall'utente stesso
-                if (!message.startsWith(username + ":")) {
-                    System.out.println(message);
+    static class ReceiveHandler implements Runnable {
+        private Socket socket;
+
+        public ReceiveHandler(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                String message;
+                while ((message = in.readLine()) != null) {
+                    // Non stampare i messaggi inviati dall'utente stesso
+                    if (!message.startsWith(username + ":")) {
+                        chatArea.append(message + "\n");
+                    }
                 }
+            } catch (IOException e) {
+                System.out.println("Connessione con il server persa.");
             }
-        } catch (IOException e) {
-            System.out.println("Connessione con il server persa.");
         }
     }
 }
