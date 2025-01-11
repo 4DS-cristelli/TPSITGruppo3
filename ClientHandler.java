@@ -25,6 +25,11 @@ class ClientHandler implements Runnable {
             System.out.println(username + " si è connesso.");
             Server.broadcast(username + " è entrato nella chat!", this);
 
+            // Invia i messaggi salvati
+            for (String message : Server.getMessageHistory()) {
+                out.println(message);
+            }
+
             String message;
             while ((message = in.readLine()) != null) {
                 System.out.println(username + ": " + message);
@@ -42,6 +47,7 @@ class ClientHandler implements Runnable {
             Server.broadcast(username + " ha lasciato la chat.", this);
         }
     }
+
 
     public void sendMessage(String message) {
         out.println(message);
