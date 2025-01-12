@@ -1,12 +1,21 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
-class ClientHandler implements Runnable {
-    private Socket socket;
-    private BufferedReader in;
-    private PrintWriter out;
-    private String username;
 
+/**
+ * La classe ClientHandler gestisce la comunicazione tra il server e un singolo client.
+ * Implementa l'interfaccia Runnable per consentire l'esecuzione in un thread separato.
+ */
+class ClientHandler implements Runnable {
+    private Socket socket; // Socket per la comunicazione con il client
+    private BufferedReader in; // Flusso di input per ricevere dati dal client
+    private PrintWriter out; // Flusso di output per inviare dati al client
+    private String username; // Nome utente del client
+
+    /**
+     * Costruttore per inizializzare il gestore del client con il socket specificato.
+     * @param socket Il socket per la connessione al client.
+     */
     public ClientHandler(Socket socket) {
         this.socket = socket;
         try {
@@ -17,6 +26,9 @@ class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Metodo eseguito quando il thread inizia. Gestisce la comunicazione con il client.
+     */
     @Override
     public void run() {
         try {
@@ -25,7 +37,7 @@ class ClientHandler implements Runnable {
             System.out.println(username + " si è connesso.");
             Server.broadcast(username + " è entrato nella chat!", this);
 
-            // Invia i messaggi salvati
+            // Invia i messaggi salvati al nuovo utente
             for (String message : Server.getMessageHistory()) {
                 out.println(message);
             }
@@ -48,7 +60,10 @@ class ClientHandler implements Runnable {
         }
     }
 
-
+    /**
+     * Invia un messaggio al client associato a questo gestore.
+     * @param message Il messaggio da inviare.
+     */
     public void sendMessage(String message) {
         out.println(message);
     }
